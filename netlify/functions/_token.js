@@ -17,6 +17,10 @@ async function getAccessToken() {
 }
 
 async function _fetchToken() {
+  if (process.env.SHOPIFY_ADMIN_TOKEN) {
+    return process.env.SHOPIFY_ADMIN_TOKEN;
+  }
+
   const { SHOPIFY_STORE_DOMAIN, SHOPIFY_CLIENT_ID, SHOPIFY_CLIENT_SECRET } = process.env;
 
   if (!SHOPIFY_STORE_DOMAIN || !SHOPIFY_CLIENT_ID || !SHOPIFY_CLIENT_SECRET) {
