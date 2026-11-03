@@ -1,0 +1,13 @@
+{
+  "name": "playhub-combo-backend",
+  "version": "1.0.0",
+  "description": "Netlify Functions – Draft Order combo 3 jogos PlayHub",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
