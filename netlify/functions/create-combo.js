@@ -15,11 +15,17 @@
 
 const { getAccessToken } = require('./_token');
 
-const PRICES_BY_COUNT = {
-  2: { price: '99.90',  title: 'COMBO PROMOCIONAL 2 JOGOS (SECUNDÁRIA)' },
-  3: { price: '99.90',  title: 'COMBO PROMOCIONAL 3 JOGOS (SECUNDÁRIA)' },
-  4: { price: '127.89', title: 'COMBO PROMOCIONAL 4 JOGOS (SECUNDÁRIA)' },
-  5: { price: '151.88', title: 'COMBO PROMOCIONAL 5 JOGOS (SECUNDÁRIA)' },
+const COMBOS = {
+  '2-jogos': {
+    2: { price: '99.90',  title: 'COMBO 2 JOGOS POR R$ 99,90' },
+    3: { price: '143.60', title: 'COMBO 2 JOGOS (+1 EXTRA POR R$ 43,70)' },
+    4: { price: '187.30', title: 'COMBO 2 JOGOS (+2 EXTRAS)' },
+  },
+  '3-jogos': {
+    3: { price: '99.90',  title: 'COMBO PROMOCIONAL 3 JOGOS (SECUNDÁRIA)' },
+    4: { price: '127.89', title: 'COMBO PROMOCIONAL 4 JOGOS (SECUNDÁRIA)' },
+    5: { price: '151.88', title: 'COMBO PROMOCIONAL 5 JOGOS (SECUNDÁRIA)' },
+  },
 };
 
 exports.handler = async (event) => {
@@ -47,16 +53,31 @@ exports.handler = async (event) => {
     return json(400, { error: 'JSON inválido.' }, cors);
   }
 
-  const { variantIds, licenseType, comboPrice, comboTitle } = body;
+  const { variantIds, licenseType, comboPrice, comboTitle, comboType, collection, url } = body;
 
-  if (!Array.isArray(variantIds) || ![2, 3, 4, 5].includes(variantIds.length)) {
-    return json(400, { error: 'O combo requer a seleção de 2, 3, 4 ou 5 jogos.' }, cors);
+  if (!Array.isArray(variantIds) || variantIds.length < 2 || variantIds.length > 5) {
+    return json(400, { error: 'O combo requer a seleção de 2 a 5 jogos.' }, cors);
   }
 
   const count = variantIds.length;
-  const defaultConfig = PRICES_BY_COUNT[count] || { price: '99.90', title: `COMBO PROMOCIONAL ${count} JOGOS (SECUNDÁRIA)` };
+
+  // Identifica se a requisição é do combo de 2 jogos
+  const is2GamesCombo =
+    comboType === '2-jogos' ||
+    comboType === '2' ||
+    body.baseCombo === 2 ||
+    (typeof collection === 'string' && collection.includes('2-por')) ||
+    (typeof url === 'string' && url.includes('2-por')) ||
+    (count === 2);
+
+  const table = is2GamesCombo ? COMBOS['2-jogos'] : COMBOS['3-jogos'];
+  const defaultConfig = table[count] || {
+    price: is2GamesCombo ? (99.90 + (count - 2) * 43.70).toFixed(2) : '99.90',
+    title: `COMBO PROMOCIONAL ${count} JOGOS`,
+  };
+
   const comboConfig = {
-    price: comboPrice ? String(comboPrice) : defaultConfig.price,
+    price: comboPrice ? String(comboPrice).replace(',', '.') : defaultConfig.price,
     title: comboTitle ? String(comboTitle) : defaultConfig.title,
   };
 
