@@ -16,6 +16,7 @@
 const { getAccessToken } = require('./_token');
 
 const PRICES_BY_COUNT = {
+  2: { price: '99.90',  title: 'COMBO PROMOCIONAL 2 JOGOS (SECUNDÁRIA)' },
   3: { price: '99.90',  title: 'COMBO PROMOCIONAL 3 JOGOS (SECUNDÁRIA)' },
   4: { price: '127.89', title: 'COMBO PROMOCIONAL 4 JOGOS (SECUNDÁRIA)' },
   5: { price: '151.88', title: 'COMBO PROMOCIONAL 5 JOGOS (SECUNDÁRIA)' },
@@ -46,14 +47,18 @@ exports.handler = async (event) => {
     return json(400, { error: 'JSON inválido.' }, cors);
   }
 
-  const { variantIds, licenseType } = body;
+  const { variantIds, licenseType, comboPrice, comboTitle } = body;
 
-  if (!Array.isArray(variantIds) || ![3, 4, 5].includes(variantIds.length)) {
-    return json(400, { error: 'O combo requer a seleção de 3, 4 ou 5 jogos.' }, cors);
+  if (!Array.isArray(variantIds) || ![2, 3, 4, 5].includes(variantIds.length)) {
+    return json(400, { error: 'O combo requer a seleção de 2, 3, 4 ou 5 jogos.' }, cors);
   }
 
   const count = variantIds.length;
-  const comboConfig = PRICES_BY_COUNT[count];
+  const defaultConfig = PRICES_BY_COUNT[count] || { price: '99.90', title: `COMBO PROMOCIONAL ${count} JOGOS (SECUNDÁRIA)` };
+  const comboConfig = {
+    price: comboPrice ? String(comboPrice) : defaultConfig.price,
+    title: comboTitle ? String(comboTitle) : defaultConfig.title,
+  };
 
   // Verificar variantes distintas
   const uniqueIds = new Set(variantIds.map(String));
