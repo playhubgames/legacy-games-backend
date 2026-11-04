@@ -141,14 +141,10 @@ exports.handler = async (event) => {
     gameNotes.push(productTitle + ' [' + variantTitle + ']');
   }
 
-  // Determinar o preço tradicional de cada jogo
-  // Regra:
-  // Se o jogo tem compareAtPrice (valor tradicional riscado), exibe esse valor tradicional.
-  // Se não tiver valor riscado, exibe o preço normal do catálogo.
+  // Determinar o preço de cada jogo
+  // Utiliza o preço de venda atual (promocional) cadastrado no produto
   const itemPrices = nodes.map(node => {
-    const compare = node.compareAtPrice ? parseFloat(node.compareAtPrice) : 0;
-    const current = node.price ? parseFloat(node.price) : 0;
-    return (compare > 0 ? compare : current);
+    return node.price ? parseFloat(node.price) : 0;
   });
 
   const subtotalEffective = itemPrices.reduce((sum, p) => sum + p, 0);
