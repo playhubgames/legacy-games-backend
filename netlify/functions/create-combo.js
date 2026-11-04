@@ -167,61 +167,49 @@ exports.handler = async (event) => {
     gameNotes.push(productTitle + ' [' + variantTitle + ']');
   }
 
-  // Determinar o preço de cada jogo
-  // Utiliza o preço de venda atual (promocional) cadastrado no produto
-  const itemPrices = nodes.map(node => {
-    return node.price ? parseFloat(node.price) : 0;
-  });
-
-  const subtotalEffective = itemPrices.reduce((sum, p) => sum + p, 0);
   const targetComboPrice = parseFloat(comboConfig.price);
 
-  let lineItemsInput = [];
-  let appliedDiscountInput = null;
+  // 1. Tenta usar os preços de venda atuais
+  let itemPrices = nodes.map(node => (node.price ? parseFloat(node.price) : 0));
+  let subtotalEffective = itemPrices.reduce((sum, p) => sum + p, 0);
 
-  if (subtotalEffective >= targetComboPrice) {
-    // Caso padrão: subtotal tradicional cobre o combo
-    const discountVal = parseFloat((subtotalEffective - targetComboPrice).toFixed(2));
-
-    lineItemsInput = nodes.map((node, i) => ({
-      variantId: node.id,
-      quantity: 1,
-      requiresShipping: false,
-      generatePriceOverride: true,
-      priceOverride: {
-        amount: itemPrices[i].toFixed(2),
-        currencyCode: 'BRL',
-      },
-    }));
-
-    if (discountVal > 0) {
-      appliedDiscountInput = {
-        title: 'Desconto Combo (' + count + ' Jogos)',
-        value: discountVal,
-        valueType: 'FIXED_AMOUNT',
-      };
-    }
-  } else {
-    // Caso em que os preços somados são menores que o combo:
-    // distribui o valor do combo para que o total feche exatamente em targetComboPrice
-    const totalCents = Math.round(targetComboPrice * 100);
-    const baseCents = Math.floor(totalCents / count);
-    const remainder = totalCents - (baseCents * count);
-
-    lineItemsInput = nodes.map((node, i) => {
-      const itemCents = i === 0 ? (baseCents + remainder) : baseCents;
-      return {
-        variantId: node.id,
-        quantity: 1,
-        requiresShipping: false,
-        generatePriceOverride: true,
-        priceOverride: {
-          amount: (itemCents / 100).toFixed(2),
-          currencyCode: 'BRL',
-        },
-      };
+  // 2. Se a soma dos preços de venda for menor que o valor do combo (ex: 2 jogos somando R$ 92 < R$ 99,90),
+  // usa os preços originais de tabela (compareAtPrice) para exibir o valor original e aplicar o desconto
+  if (subtotalEffective < targetComboPrice) {
+    itemPrices = nodes.map(node => {
+      const compare = node.compareAtPrice ? parseFloat(node.compareAtPrice) : 0;
+      const current = node.price ? parseFloat(node.price) : 0;
+      return compare > current ? compare : current;
     });
+    subtotalEffective = itemPrices.reduce((sum, p) => sum + p, 0);
   }
+
+  // 3. Se ainda assim a soma for menor que o combo, aplica fator proporcional para
+  // NUNCA exibir valores fixos divididos (ex: R$ 49,95 ou R$ 33,30) e sempre exibir linha de desconto
+  if (subtotalEffective < targetComboPrice) {
+    const markupFactor = (targetComboPrice * 1.35) / (subtotalEffective || 1);
+    itemPrices = itemPrices.map(p => parseFloat((p * markupFactor).toFixed(2)));
+    subtotalEffective = itemPrices.reduce((sum, p) => sum + p, 0);
+  }
+
+  const discountVal = parseFloat((subtotalEffective - targetComboPrice).toFixed(2));
+
+  const lineItemsInput = nodes.map((node, i) => ({
+    variantId: node.id,
+    quantity: 1,
+    requiresShipping: false,
+    generatePriceOverride: true,
+    priceOverride: {
+      amount: itemPrices[i].toFixed(2),
+      currencyCode: 'BRL',
+    },
+  }));
+
+  const appliedDiscountInput = discountVal > 0 ? {
+    title: 'Desconto Combo (' + count + ' Jogos)',
+    value: discountVal,
+    valueType: 'FIXED_AMOUNT',
+  } : null;
 
   // Criação do Draft Order via GraphQL Mutation (suporta generatePriceOverride nativamente)
   const draftMutation = `
