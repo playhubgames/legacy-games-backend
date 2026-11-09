@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     return json(400, { error: 'JSON inválido.' }, cors);
   }
 
-  const { variantIds, licenseType, comboPrice, comboTitle, comboType, collection, url } = body;
+  const { variantIds, licenseType, comboPrice, comboTitle, comboType, collection, url, phone, email, name } = body;
 
   if (!Array.isArray(variantIds) || variantIds.length < 2 || variantIds.length > 5) {
     return json(400, { error: 'O combo requer a seleção de 2 a 5 jogos.' }, cors);
@@ -229,11 +229,55 @@ exports.handler = async (event) => {
     }
   `;
 
+  const customAttributes = [];
+  let noteText = comboConfig.title + ':\n- ' + gameNotes.join('\n- ');
+  const tagsList = ['combo-' + count + '-jogos', 'promocional', 'secundaria'];
+
+  let formattedPhone = null;
+  if (phone && typeof phone === 'string') {
+    const rawDigits = phone.replace(/\D/g, '');
+    if (rawDigits.length >= 10) {
+      formattedPhone = rawDigits.startsWith('55') ? '+' + rawDigits : '+55' + rawDigits;
+      noteText += '\n\n📱 WhatsApp / Telefone: ' + phone.trim();
+      customAttributes.push(
+        { key: 'WhatsApp', value: phone.trim() },
+        { key: 'Telefone', value: phone.trim() }
+      );
+      tagsList.push('com-whatsapp', 'wa-' + rawDigits);
+    }
+  }
+
+  if (name && typeof name === 'string' && name.trim()) {
+    noteText += '\n👤 Nome: ' + name.trim();
+    customAttributes.push({ key: 'Nome', value: name.trim() });
+  }
+
+  if (email && typeof email === 'string' && email.includes('@')) {
+    noteText += '\n✉️ Email: ' + email.trim();
+  }
+
   const draftInput = {
     lineItems: lineItemsInput,
-    note: comboConfig.title + ':\n- ' + gameNotes.join('\n- '),
-    tags: ['combo-' + count + '-jogos', 'promocional', 'secundaria'],
+    note: noteText,
+    tags: tagsList,
+    ...(customAttributes.length > 0 ? { customAttributes } : {}),
   };
+
+  if (formattedPhone) {
+    draftInput.phone = formattedPhone;
+    const customerName = (name && typeof name === 'string' && name.trim()) ? name.trim() : 'Cliente';
+    const address = {
+      firstName: customerName,
+      phone: formattedPhone,
+      countryCode: 'BR',
+    };
+    draftInput.shippingAddress = address;
+    draftInput.billingAddress = address;
+  }
+
+  if (email && typeof email === 'string' && email.includes('@')) {
+    draftInput.email = email.trim();
+  }
 
   if (appliedDiscountInput) {
     draftInput.appliedDiscount = appliedDiscountInput;
