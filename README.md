@@ -164,9 +164,12 @@ Para que a função de listagem de produtos (`get-products`) saiba quais jogos e
   ```json
   {
     "variantIds": ["47523098001497", "47523094397017", "47523109765209"],
-    "comboType": "3-jogos"
+    "comboType": "3-jogos",
+    "phone": "(11) 98765-4321",
+    "name": "Nome do Cliente"
   }
   ```
+  *(Os campos `phone` e `name` são opcionais, mas recomendados para capturar o WhatsApp do cliente nos rascunhos de pedidos abandonados).*
 
 ### 🏷️ Tabela de Preços Pré-configurada:
 
@@ -251,3 +254,4 @@ async function finalizarCombo(selectedVariantIds) {
 ---
 
 Pronto! Seguindo estes passos, qualquer loja Shopify pode ter o backend de combos rodando de forma isolada, estável e escalável em menos de 10 minutos.
+
