@@ -263,22 +263,6 @@ exports.handler = async (event) => {
     ...(customAttributes.length > 0 ? { customAttributes } : {}),
   };
 
-  if (formattedPhone) {
-    draftInput.phone = formattedPhone;
-    const customerName = (name && typeof name === 'string' && name.trim()) ? name.trim() : 'Cliente';
-    const address = {
-      firstName: customerName,
-      phone: formattedPhone,
-      countryCode: 'BR',
-    };
-    draftInput.shippingAddress = address;
-    draftInput.billingAddress = address;
-  }
-
-  if (email && typeof email === 'string' && email.includes('@')) {
-    draftInput.email = email.trim();
-  }
-
   if (appliedDiscountInput) {
     draftInput.appliedDiscount = appliedDiscountInput;
   }
